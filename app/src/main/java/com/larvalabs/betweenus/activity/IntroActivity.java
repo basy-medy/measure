@@ -33,6 +33,7 @@ public class IntroActivity extends Activity {
 
     public static final long INTRO_DELAY = TimeUnit.SECONDS.toMillis(2);
     private static final int REQUEST_LOCATION_PERMISSION = 2001;
+    private static final int REQUEST_BACKGROUND_LOCATION = 2002;
 
     private long startTime;
 
@@ -52,8 +53,8 @@ public class IntroActivity extends Activity {
                     },
                     REQUEST_LOCATION_PERMISSION);
         } else {
-            // Permission already granted, refresh location then proceed
-            refreshLocationAndProceed();
+            // Foreground location already granted — request background location
+            requestBackgroundLocationThenProceed();
         }
     }
 
@@ -63,13 +64,34 @@ public class IntroActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                refreshLocationAndProceed();
+                // Foreground granted — now request background ("Allow all the time")
+                requestBackgroundLocationThenProceed();
             } else {
-                // Proceed even without location — the app can still function
                 Utils.log("Location permission denied, proceeding without location.");
                 proceedToNextScreen();
             }
+        } else if (requestCode == REQUEST_BACKGROUND_LOCATION) {
+            // Proceed regardless of result
+            refreshLocationAndProceed();
         }
+    }
+
+    /**
+     * Request ACCESS_BACKGROUND_LOCATION separately (Android requires foreground
+     * location to be granted first). This prompts the "Allow all the time" option.
+     */
+    private void requestBackgroundLocationThenProceed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        REQUEST_BACKGROUND_LOCATION);
+                return;
+            }
+        }
+        refreshLocationAndProceed();
     }
 
     private void refreshLocationAndProceed() {
