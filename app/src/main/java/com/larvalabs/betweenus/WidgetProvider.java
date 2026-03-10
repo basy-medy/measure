@@ -145,8 +145,6 @@ public class WidgetProvider extends AppWidgetProvider {
                 views.setImageViewResource(R.id.image_big, unit.getDefaultResourceId());
             }
 
-            views.setImageViewResource(R.id.image, unit.getImageResourceId());
-
             {
                 String captionString = resources.getString(unit.getCaptionStrId());
                 Bitmap textBitmap = TextViewUtil.getFontBitmap(context, captionString,
