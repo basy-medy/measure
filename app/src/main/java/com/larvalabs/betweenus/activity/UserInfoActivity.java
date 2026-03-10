@@ -73,8 +73,13 @@ public class UserInfoActivity extends Activity {
     }
 
     private void onContinueButtonClick() {
-        // Also checks server id
         if (isUsernameContentValid()) {
+            long serverId = appSettings.getServerUserId();
+            if (serverId == -1) {
+                // Server unavailable — proceed to pairing directly
+                TouchPhonesActivity.launch(UserInfoActivity.this);
+                return;
+            }
             ServerUtil.getService().setUsername(appSettings.getServerUserId(), appSettings.getUsername())
                     .enqueue(new Callback<ServerResponse>() {
                         @Override
@@ -84,7 +89,9 @@ public class UserInfoActivity extends Activity {
 
                         @Override
                         public void onFailure(Call<ServerResponse> call, Throwable t) {
-                            Toast.makeText(UserInfoActivity.this, R.string.error_username_server, Toast.LENGTH_LONG).show();
+                            Utils.error("Failed to set username on server: " + t.getMessage());
+                            // Proceed anyway — server may be unavailable
+                            TouchPhonesActivity.launch(UserInfoActivity.this);
                         }
                     });
         }
@@ -97,12 +104,6 @@ public class UserInfoActivity extends Activity {
             return false;
         }
         appSettings.setUsername(username);
-
-        if (appSettings.getServerUserId() == -1) {
-            Toast.makeText(this, "No Server user ID", Toast.LENGTH_LONG).show();
-            return false;
-        }
-
         return true;
     }
 

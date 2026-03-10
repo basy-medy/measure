@@ -1,13 +1,21 @@
 package com.larvalabs.betweenus.activity;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.larvalabs.betweenus.AppSettings;
 import com.larvalabs.betweenus.R;
 import com.larvalabs.betweenus.client.ServerResponse;
 import com.larvalabs.betweenus.client.ServerUtil;
+import com.larvalabs.betweenus.core.DeviceLocation;
 import com.larvalabs.betweenus.utils.Utils;
 
 import java.util.concurrent.TimeUnit;
@@ -17,85 +25,129 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- *
+ * Splash / entry-point activity.
+ * Requests location permission first, then attempts server registration.
+ * Proceeds to the next screen regardless of server availability.
  */
 public class IntroActivity extends Activity {
 
     public static final long INTRO_DELAY = TimeUnit.SECONDS.toMillis(2);
+    private static final int REQUEST_LOCATION_PERMISSION = 2001;
+
+    private long startTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        final long startTime = System.currentTimeMillis();
-
+        startTime = System.currentTimeMillis();
         setContentView(R.layout.activity_welcome);
 
+        // Request location permission before anything else
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    REQUEST_LOCATION_PERMISSION);
+        } else {
+            // Permission already granted, refresh location then proceed
+            refreshLocationAndProceed();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                refreshLocationAndProceed();
+            } else {
+                // Proceed even without location — the app can still function
+                Utils.log("Location permission denied, proceeding without location.");
+                proceedToNextScreen();
+            }
+        }
+    }
+
+    private void refreshLocationAndProceed() {
+        // Now that we have location permission, schedule background updates
+        Utils.scheduleAlarmForLocationUpdates(this);
+
+        try {
+            android.location.Location location = DeviceLocation.getLocation(this);
+            AppSettings appSettings = new AppSettings(this);
+            appSettings.updateFromLocation(location);
+        } catch (Exception e) {
+            Utils.error("Failed to get location on startup", e);
+        }
+        proceedToNextScreen();
+    }
+
+    private void proceedToNextScreen() {
         final AppSettings appSettings = new AppSettings(this);
+
         if (appSettings.getServerUserId() == -1) {
             Utils.log("No user id in settings, registering with server.");
-            ServerUtil.getService().registerUser(null, appSettings.getLastLatitude(), appSettings.getLastLongitude())
-                    .enqueue(new Callback<ServerResponse>() {
-                        @Override
-                        public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
-                            ServerResponse serverResponse = response.body();
-                            if (serverResponse != null) {
-                                appSettings.setServerUserId(serverResponse.yourUserId);
-
-                                Utils.log("Your user id is now " + serverResponse.yourUserId);
-
-                                long timeToDelayMinusServerResponseTime = INTRO_DELAY - (System.currentTimeMillis() - startTime);
-                                Utils.log("Starting username activity with delay time " + timeToDelayMinusServerResponseTime);
-                                runDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        finish();
-                                        Utils.launchActivity(IntroActivity.this, UserInfoActivity.class);
-                                    }
-                                }, timeToDelayMinusServerResponseTime);
-                            } else {
-                                Utils.error("Error registering user: null response");
-                                finish();
+            try {
+                ServerUtil.getService().registerUser(null, appSettings.getLastLatitude(), appSettings.getLastLongitude())
+                        .enqueue(new Callback<ServerResponse>() {
+                            @Override
+                            public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
+                                ServerResponse serverResponse = response.body();
+                                if (serverResponse != null && serverResponse.yourUserId != null) {
+                                    appSettings.setServerUserId(serverResponse.yourUserId);
+                                    Utils.log("Your user id is now " + serverResponse.yourUserId);
+                                }
+                                navigateWithDelay(UserInfoActivity.class);
                             }
-                        }
 
-                        @Override
-                        public void onFailure(Call<ServerResponse> call, Throwable t) {
-                            Utils.error("Error registering user: " + t.getMessage());
-                            finish();
-                        }
-                    });
-
+                            @Override
+                            public void onFailure(Call<ServerResponse> call, Throwable t) {
+                                Utils.error("Error registering user: " + t.getMessage());
+                                // Proceed anyway — server may be unavailable
+                                navigateWithDelay(UserInfoActivity.class);
+                            }
+                        });
+            } catch (Exception e) {
+                Utils.error("Failed to call server", e);
+                navigateWithDelay(UserInfoActivity.class);
+            }
         } else if (!appSettings.hasSetUsername()) {
-            runDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    finish();
-                    Utils.launchActivity(IntroActivity.this, UserInfoActivity.class);
-//                    overridePendingTransition(0, 0);
-                }
-            }, INTRO_DELAY);
+            navigateWithDelay(UserInfoActivity.class);
         } else if (!appSettings.getUsersConnected()) {
-            runDelayed(new Runnable() {
+            navigateDelayThen(new Runnable() {
                 @Override
                 public void run() {
                     finish();
                     TouchPhonesActivity.launch(IntroActivity.this);
-//                    overridePendingTransition(0, 0);
                 }
-            }, INTRO_DELAY);
+            });
         } else {
-            runDelayed(new Runnable() {
+            navigateDelayThen(new Runnable() {
                 @Override
                 public void run() {
                     UserConnectedActivity.launch(IntroActivity.this);
-//                    overridePendingTransition(0, 0);
                 }
-            }, INTRO_DELAY);
+            });
         }
     }
 
-    private void runDelayed(Runnable runnable, long delay) {
-        new Handler().postDelayed(runnable, delay);
+    private void navigateWithDelay(final Class<?> activityClass) {
+        navigateDelayThen(new Runnable() {
+            @Override
+            public void run() {
+                finish();
+                Utils.launchActivity(IntroActivity.this, activityClass);
+            }
+        });
+    }
+
+    private void navigateDelayThen(Runnable action) {
+        long elapsed = System.currentTimeMillis() - startTime;
+        long remaining = Math.max(0, INTRO_DELAY - elapsed);
+        new Handler().postDelayed(action, remaining);
     }
 }
