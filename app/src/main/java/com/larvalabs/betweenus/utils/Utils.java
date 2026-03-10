@@ -41,7 +41,11 @@ public class Utils {
     }
 
     public static void scheduleRepeatingAlarm(Context context, long frequencyMillis, long delayMillis, Intent intent, boolean wakeup) {
-        PendingIntent sender = PendingIntent.getBroadcast(context, 0, intent, 0);
+        int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            pendingFlags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent sender = PendingIntent.getBroadcast(context, 0, intent, pendingFlags);
 
         // Schedule the alarm!
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);

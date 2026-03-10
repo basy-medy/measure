@@ -17,9 +17,9 @@ import com.larvalabs.betweenus.client.ServerUtil;
 import com.larvalabs.betweenus.events.ServerResponseEvent;
 import com.larvalabs.betweenus.utils.Utils;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  *
@@ -75,15 +75,15 @@ public class UserInfoActivity extends Activity {
     private void onContinueButtonClick() {
         // Also checks server id
         if (isUsernameContentValid()) {
-            ServerUtil.getService().setUsername(appSettings.getServerUserId(), appSettings.getUsername(),
-                    new Callback<ServerResponse>() {
+            ServerUtil.getService().setUsername(appSettings.getServerUserId(), appSettings.getUsername())
+                    .enqueue(new Callback<ServerResponse>() {
                         @Override
-                        public void success(ServerResponse serverResponse, Response response) {
+                        public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
                             TouchPhonesActivity.launch(UserInfoActivity.this);
                         }
 
                         @Override
-                        public void failure(RetrofitError error) {
+                        public void onFailure(Call<ServerResponse> call, Throwable t) {
                             Toast.makeText(UserInfoActivity.this, R.string.error_username_server, Toast.LENGTH_LONG).show();
                         }
                     });

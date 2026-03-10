@@ -1,13 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.larvalabs.betweenus">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <uses-feature android:name="android.hardware.nfc" />
+    <!-- Nearby Connections: Wi-Fi -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- Nearby Connections: Bluetooth (pre-Android 12) -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+
+    <!-- Nearby Connections: Bluetooth (Android 12+) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Nearby Connections: Wi-Fi (Android 13+) -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
 
     <application
         android:name=".BetweenUsApplication"
@@ -20,7 +36,8 @@
         <receiver
             android:icon="@mipmap/ic_launcher"
             android:label="Between Us"
-            android:name=".WidgetProvider" >
+            android:name=".WidgetProvider"
+            android:exported="true">
             <intent-filter >
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -30,11 +47,13 @@
                 android:resource="@xml/widget_provider" />
         </receiver>
 
-        <receiver android:name=".SystemAlarmReceiver" />
+        <receiver android:name=".SystemAlarmReceiver"
+            android:exported="false" />
 
         <activity
             android:name=".activity.IntroActivity"
             android:screenOrientation="portrait"
+            android:exported="true"
             android:theme="@style/NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,66 +64,53 @@
         <activity
             android:name=".activity.UserInfoActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
         </activity>
 
         <activity
             android:name=".activity.TouchPhonesActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
         </activity>
 
         <activity
             android:name=".activity.FindingPartnerActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
-            <intent-filter>
-                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="app/betweenus" />
-<!--
-                <data
-                    android:scheme="vnd.android.nfc"
-                    android:host="ext"
-                    android:pathPrefix="/betweenus.larvalabs.com:externaltype"
-                    />
--->
-            </intent-filter>
         </activity>
 
         <activity
             android:name=".activity.UserConnectedActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
 
         <activity android:name=".activity.AboutActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar"/>
 
         <activity
             android:name=".activity.HowToSetUpWidgetActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
 
         <activity android:name=".activity.HamburgerMenuActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar"/>
 
         <activity
             android:name=".activity.UnitsActivity"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:theme="@style/NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
 
     </application>

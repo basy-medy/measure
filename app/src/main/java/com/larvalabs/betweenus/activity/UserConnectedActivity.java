@@ -18,10 +18,6 @@ import com.larvalabs.betweenus.client.ServerUtil;
 import com.larvalabs.betweenus.utils.TextViewUtil;
 import com.larvalabs.betweenus.utils.Utils;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
-
 /**
  *
  */

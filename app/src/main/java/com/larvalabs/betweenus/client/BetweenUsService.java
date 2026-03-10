@@ -1,33 +1,30 @@
 package com.larvalabs.betweenus.client;
 
-import retrofit.Callback;
-import retrofit.http.POST;
-import retrofit.http.Query;
+import retrofit2.Call;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
 
 /**
- *
+ * Retrofit 2 service interface for the BetweenUs backend.
  */
 public interface BetweenUsService {
 
     @POST("/application/registerUser")
-    void registerUser(@Query("username") String username, @Query("latitude") double latitude, @Query("longitude") double longitude, Callback<ServerResponse> callback);
+    Call<ServerResponse> registerUser(@Query("username") String username, @Query("latitude") double latitude, @Query("longitude") double longitude);
 
     @POST("/application/setUsername")
-    void setUsername(@Query("userId") Long userId, @Query("username") String username, Callback<ServerResponse> callback);
+    Call<ServerResponse> setUsername(@Query("userId") Long userId, @Query("username") String username);
 
     @POST("/application/connect")
-    void connect(@Query("userId1") Long userId1, @Query("userId2") Long userId2, Callback<ServerResponse> callback);
+    Call<ServerResponse> connect(@Query("userId1") Long userId1, @Query("userId2") Long userId2);
 
     @POST("/application/updateLocation")
-    void updateLocation(@Query("userId") Long userId, @Query("latitude") double latitude, @Query("longitude") double longitude, Callback<ServerResponse> callback);
-
-    @POST("/application/updateLocation")
-    ServerResponse updateLocationSync(@Query("userId") Long userId, @Query("latitude") double latitude, @Query("longitude") double longitude);
+    Call<ServerResponse> updateLocation(@Query("userId") Long userId, @Query("latitude") double latitude, @Query("longitude") double longitude);
 
     @POST("/application/getinfo")
-    ServerResponse getInfoSync(@Query("userId") Long userId);
+    Call<ServerResponse> getInfoSync(@Query("userId") Long userId);
 
     @POST("/application/endConversation")
-    void endConversation(@Query("userId") Long userId, Callback<ServerResponse> callback);
+    Call<ServerResponse> endConversation(@Query("userId") Long userId);
 
 }

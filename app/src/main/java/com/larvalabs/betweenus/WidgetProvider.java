@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -164,7 +165,7 @@ public class WidgetProvider extends AppWidgetProvider {
                 // OnClickListener
                 Intent intent = new Intent(context, WidgetProvider.class);
                 intent.setAction(BACK_CLICK_ACTION);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, getPendingIntentFlags());
                 views.setOnClickPendingIntent(R.id.root, pendingIntent);
                 views.setDisplayedChild(R.id.root, 1);
                 flipperDisplayedChild = 1;
@@ -187,7 +188,7 @@ public class WidgetProvider extends AppWidgetProvider {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.setAction(Intent.ACTION_WEB_SEARCH);
         intent.putExtra("query", unit.getSearchQuery());
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, getPendingIntentFlags());
         views.setOnClickPendingIntent(R.id.btn_google, pendingIntent);
     }
 
@@ -255,7 +256,7 @@ public class WidgetProvider extends AppWidgetProvider {
         intent.setAction(action);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, getPendingIntentFlags());
         views.setOnClickPendingIntent(imageResourceId, pendingIntent);
     }
 
@@ -277,7 +278,7 @@ public class WidgetProvider extends AppWidgetProvider {
         intent.setAction(ACTION_UPDATE_LOCATION_AND_REFRESH);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, getPendingIntentFlags());
         views.setOnClickPendingIntent(refresh, pendingIntent);
     }
 
@@ -308,7 +309,7 @@ public class WidgetProvider extends AppWidgetProvider {
                 // Return OnClickListener
                 Intent intent = new Intent(context, WidgetProvider.class);
                 intent.setAction(BACK_CLICK_ACTION);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, getPendingIntentFlags());
                 views.setOnClickPendingIntent(R.id.root, pendingIntent);
             }
 
@@ -330,4 +331,12 @@ public class WidgetProvider extends AppWidgetProvider {
         }
     }
 
+
+    private static int getPendingIntentFlags() {
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return flags;
+    }
 }

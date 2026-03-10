@@ -4,11 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.AnimationDrawable;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
-import android.nfc.NfcAdapter;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -16,28 +12,38 @@ import com.larvalabs.betweenus.AppSettings;
 import com.larvalabs.betweenus.R;
 import com.larvalabs.betweenus.client.ServerResponse;
 import com.larvalabs.betweenus.client.ServerUtil;
-import com.larvalabs.betweenus.core.DeviceLocation;
 import com.larvalabs.betweenus.utils.Utils;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
- *
+ * Handles the post-discovery pairing flow.
+ * Two launch modes:
+ *   1) pollServer=true  — we sent our ID and are polling the server for connection confirmation.
+ *   2) partnerId!=null   — we received the partner's ID via Nearby and call connect() on the server.
  */
 public class FindingPartnerActivity extends Activity {
 
     private static final String INTENT_POLL = "poll";
+    private static final String INTENT_PARTNER_ID = "partnerId";
     private static final int MAX_SERVER_POLL_ATTEMPTS = 10;
 
+    /** Launch in polling mode (we already sent our ID, waiting for server to reflect connection). */
     public static void launchActivity(Context context, boolean pollServer) {
         Intent intent = new Intent(context, FindingPartnerActivity.class);
-//        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra(INTENT_POLL, pollServer);
+        context.startActivity(intent);
+    }
+
+    /** Launch with a known partner user ID received via Nearby Connections payload. */
+    public static void launchWithPartnerId(Context context, long partnerId) {
+        Intent intent = new Intent(context, FindingPartnerActivity.class);
+        intent.putExtra(INTENT_PARTNER_ID, partnerId);
         context.startActivity(intent);
     }
 
@@ -49,7 +55,6 @@ public class FindingPartnerActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_finding_partner);
 
         appSettings = new AppSettings(this);
@@ -63,33 +68,74 @@ public class FindingPartnerActivity extends Activity {
         if (getIntent() != null) {
             pollServer = getIntent().getBooleanExtra(INTENT_POLL, false);
 
-            handleIntent(getIntent());
+            long partnerId = getIntent().getLongExtra(INTENT_PARTNER_ID, -1);
+            if (partnerId != -1) {
+                connectWithPartner(partnerId);
+                return;
+            }
         }
 
         Utils.log("Should poll server: " + pollServer);
 
-        // We proceed to the next step in one of two ways:
-        // 1) We are the recipient of the NFC message, so we connect the users on the server and see
-        // and immediate response.
-        // 2) We are waiting for the NFC recipient to connect the users, so we just poll the server
-        // to see when we're connected, or give up.
-
-        // Poll server
         if (pollServer) {
-            timer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    Utils.log("Checking server to see if users connected...");
+            startPolling();
+        }
+    }
 
-                    if (serverPollAttempts > MAX_SERVER_POLL_ATTEMPTS) {
-                        Utils.log("Exceeded max server checks for user connection, aborting.");
-                        timer.cancel();
-                        FindingPartnerActivity.this.finish();
-                        return;
+    @Override
+    protected void onStop() {
+        super.onStop();
+        timer.cancel();
+    }
+
+    /** Directly connect with the partner whose ID we received via Nearby. */
+    private void connectWithPartner(long otherUserId) {
+        Utils.log("Attempting to pair with user id " + otherUserId);
+        ServerUtil.getService().connect(appSettings.getServerUserId(), otherUserId)
+                .enqueue(new Callback<ServerResponse>() {
+                    @Override
+                    public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
+                        ServerResponse serverResponse = response.body();
+                        if (serverResponse != null) {
+                            Utils.log("Users connected.");
+                            appSettings.updateFromServerResponse(serverResponse);
+                            Utils.updateAppWidgets(FindingPartnerActivity.this);
+                            UserConnectedActivity.launch(FindingPartnerActivity.this);
+                        } else {
+                            Toast.makeText(FindingPartnerActivity.this,
+                                    "User connection failed", Toast.LENGTH_LONG).show();
+                        }
+                        finish();
                     }
 
+                    @Override
+                    public void onFailure(Call<ServerResponse> call, Throwable t) {
+                        Utils.error("User connection failed: " + t.getMessage());
+                        Toast.makeText(FindingPartnerActivity.this,
+                                "User connection failed", Toast.LENGTH_LONG).show();
+                        finish();
+                    }
+                });
+    }
 
-                    ServerResponse serverResponse = ServerUtil.getService().getInfoSync(appSettings.getServerUserId());
+    /** Poll the server periodically to check if the partner has completed the connection. */
+    private void startPolling() {
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Utils.log("Checking server to see if users connected...");
+
+                if (serverPollAttempts > MAX_SERVER_POLL_ATTEMPTS) {
+                    Utils.log("Exceeded max server checks for user connection, aborting.");
+                    timer.cancel();
+                    FindingPartnerActivity.this.finish();
+                    return;
+                }
+
+                try {
+                    retrofit2.Response<ServerResponse> resp =
+                            ServerUtil.getService().getInfoSync(appSettings.getServerUserId()).execute();
+                    ServerResponse serverResponse = resp.body();
                     serverPollAttempts++;
                     if (serverResponse != null) {
                         appSettings.updateFromServerResponse(serverResponse);
@@ -103,70 +149,12 @@ public class FindingPartnerActivity extends Activity {
                     } else {
                         Utils.error("Can't connect to user because location unavailable.");
                     }
-                }
-            }, 0, 1000);
-        };
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        timer.cancel();
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        Utils.log("Lifecycle: onNewIntent");
-        handleIntent(intent);
-    }
-
-    private void handleIntent(final Intent intent) {
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
-            handleNfcIntent(intent);
-        }
-    }
-
-    private void handleNfcIntent(Intent intent) {
-        Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-        if (rawMsgs != null) {
-            NdefMessage[] msgs = new NdefMessage[rawMsgs.length];
-            for (int i = 0; i < rawMsgs.length; i++) {
-                msgs[i] = (NdefMessage) rawMsgs[i];
-                NdefRecord[] records = msgs[i].getRecords();
-                for (int j = 0; j < records.length; j++) {
-                    NdefRecord record = records[j];
-                    String text = new String(record.getPayload());
-                    Utils.log("Received payload from partner via NFC: " + text);
-                    Long otherUserId = Long.parseLong(text);
-                    final AppSettings appSettings = new AppSettings(this);
-                    Utils.log("Attempting to pair with user id " + otherUserId);
-                    ServerUtil.getService().connect(appSettings.getServerUserId(), otherUserId,
-                            new Callback<ServerResponse>() {
-                                @Override
-                                public void success(ServerResponse serverResponse, Response response) {
-
-                                    Utils.log("Users connected.");
-                                    appSettings.updateFromServerResponse(serverResponse);
-                                    Utils.updateAppWidgets(FindingPartnerActivity.this);
-                                    UserConnectedActivity.launch(FindingPartnerActivity.this);
-                                    finish();
-//                                    showUserConnectedScreen();
-                                }
-
-                                @Override
-                                public void failure(RetrofitError error) {
-                                    Utils.error("User connection failed: " + error.getMessage());
-                                    Toast.makeText(FindingPartnerActivity.this, "User connection failed",
-                                            Toast.LENGTH_LONG).show();
-
-                                    finish();
-                                }
-                            });
-//                    Toast.makeText(this, "Received: '" + text + "'.", Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Utils.error("Server poll failed", e);
+                    serverPollAttempts++;
                 }
             }
-        }
+        }, 0, 1000);
     }
-
 }
+

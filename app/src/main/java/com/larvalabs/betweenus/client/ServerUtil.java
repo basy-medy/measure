@@ -1,9 +1,10 @@
 package com.larvalabs.betweenus.client;
 
-import retrofit.RestAdapter;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
- *
+ * Provides a singleton Retrofit 2 client for the BetweenUs backend.
  */
 public class ServerUtil {
 
@@ -14,11 +15,12 @@ public class ServerUtil {
 
     public static BetweenUsService getService() {
         if (service == null) {
-            RestAdapter restAdapter = new RestAdapter.Builder()
-                    .setEndpoint(SERVER_PROD)
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(SERVER_PROD)
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build();
 
-            service = restAdapter.create(BetweenUsService.class);
+            service = retrofit.create(BetweenUsService.class);
         }
         return service;
     }

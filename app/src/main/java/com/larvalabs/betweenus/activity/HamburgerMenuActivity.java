@@ -17,9 +17,9 @@ import com.larvalabs.betweenus.client.ServerUtil;
 import com.larvalabs.betweenus.utils.TextViewUtil;
 import com.larvalabs.betweenus.utils.Utils;
 
-import retrofit.Callback;
-import retrofit.RetrofitError;
-import retrofit.client.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  *
@@ -103,22 +103,22 @@ public class HamburgerMenuActivity extends Activity {
     }
 
     private void clickDisconnect(View view) {
-        ServerUtil.getService().endConversation(appSettings.getServerUserId(),
-                new Callback<ServerResponse>() {
+        ServerUtil.getService().endConversation(appSettings.getServerUserId())
+                .enqueue(new Callback<ServerResponse>() {
                     @Override
-                    public void success(ServerResponse serverResponse, Response response) {
-                        appSettings.updateFromServerResponse(serverResponse);
+                    public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
+                        ServerResponse serverResponse = response.body();
+                        if (serverResponse != null) {
+                            appSettings.updateFromServerResponse(serverResponse);
+                        }
                         finish();
                         TouchPhonesActivity.launch(HamburgerMenuActivity.this);
                         Utils.updateAppWidgets(HamburgerMenuActivity.this);
-//                        appSettings.resetServerUserId();
-//                        EventBus.getDefault().post(new ServerResponseEvent("Disconnect response success"));
-//                        EventBus.getDefault().post(new UserDisconnectedEvent());
                     }
 
                     @Override
-                    public void failure(RetrofitError error) {
-//                        EventBus.getDefault().post(new ServerResponseEvent("Disconnect response failure"));
+                    public void onFailure(Call<ServerResponse> call, Throwable t) {
+                        Utils.error("Disconnect failed: " + t.getMessage());
                     }
                 });
     }
