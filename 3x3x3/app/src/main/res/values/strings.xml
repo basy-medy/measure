@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Twenty-seven</string>
+    <string name="front">Front</string>
+    <string name="middle">Middle</string>
+    <string name="back">Back</string>
+    <string name="waiting">Waiting…</string>
+    <string name="xs_turn">%c\'s turn</string>
+    <string name="x_wins">%c wins</string>
+    <string name="new_game">New game</string>
+    <string name="peers_connected">%d peer(s) connected</string>
+</resources>

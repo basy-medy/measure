@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 theme colors (fallback when dynamic colors unavailable) -->
+    <color name="md_theme_primary">#904A4D</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#FFDAD8</color>
+    <color name="md_theme_onPrimaryContainer">#3B080E</color>
+    <color name="md_theme_secondary">#50815A</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer">#D2E8D4</color>
+    <color name="md_theme_onSecondaryContainer">#0D3818</color>
+    <color name="md_theme_tertiary">#725B2E</color>
+    <color name="md_theme_onTertiary">#FFFFFF</color>
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_background">#FFFBFF</color>
+    <color name="md_theme_onBackground">#201A19</color>
+    <color name="md_theme_surface">#FFFBFF</color>
+    <color name="md_theme_onSurface">#201A19</color>
+    <color name="md_theme_surfaceVariant">#F5DDDB</color>
+    <color name="md_theme_onSurfaceVariant">#534342</color>
+    <color name="md_theme_outline">#857371</color>
+
+    <!-- Game-specific colors -->
+    <color name="game_red">#904A4D</color>
+    <color name="game_green">#50815A</color>
+    <color name="dark_gray">#333333</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Legacy rainbow colors -->
+    <color name="rainbow_red">#B20B38</color>
+    <color name="rainbow_yellow">#F0AF00</color>
+    <color name="rainbow_green">#649500</color>
+    <color name="rainbow_blue">#195B83</color>
+    <color name="rainbow_purple">#2F1B60</color>
+</resources>
